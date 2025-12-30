@@ -1,14 +1,14 @@
-import { playwright } from 'playwright-extra';
-import stealth from 'puppeteer-extra-plugin-stealth';
+import { chromium } from 'playwright-extra';
+import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import express from 'express';
 
-// 1. Setup Playwright with Stealth
-playwright.chromium.use(stealth());
+// 1. Tell playwright-extra to use the stealth plugin
+chromium.use(stealthPlugin());
 
 const app = express();
 app.use(express.json());
 
-// 2. Define the endpoint n8n will talk to
+// 2. The endpoint n8n will call
 app.post('/scrape', async (req, res) => {
   const { url } = req.body;
 
@@ -17,18 +17,21 @@ app.post('/scrape', async (req, res) => {
   }
 
   console.log(`n8n requested scrape for: ${url}`);
-  const browser = await playwright.chromium.launch({ headless: true });
   
+  // Use chromium (which now has stealth enabled)
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+  });
+
   try {
     const context = await browser.newContext();
     const page = await context.newPage();
     
-    // Navigate to the site
     await page.goto(url, { waitUntil: 'networkidle' });
     
-    // Get basic data (you can customize what you extract here)
     const title = await page.title();
-    const content = await page.content(); // Full HTML
+    const content = await page.content();
 
     await browser.close();
     res.json({ title, content });
@@ -38,8 +41,7 @@ app.post('/scrape', async (req, res) => {
   }
 });
 
-// 3. Start the server on the port Railway provides
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Playwright service is online at port ${PORT}`);
+  console.log(`Playwright Stealth service listening on port ${PORT}`);
 });
