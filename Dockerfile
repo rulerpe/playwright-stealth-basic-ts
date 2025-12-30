@@ -5,7 +5,6 @@ WORKDIR /app
 
 # Copy package files first for better caching
 COPY package*.json ./
-COPY tsconfig.json ./
 
 # Install dependencies
 RUN npm install
@@ -16,8 +15,8 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# Set environment variables
-ENV NODE_ENV=production
+# Railway uses port 3000 by default
+EXPOSE 3000
 
 # Start the application
 CMD ["npm", "start"]
